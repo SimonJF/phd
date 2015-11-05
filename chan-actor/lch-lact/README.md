@@ -1,0 +1,3 @@
+# Haskell Model of lambda-ch and lambda-act
+
+More to come as it materialises...
