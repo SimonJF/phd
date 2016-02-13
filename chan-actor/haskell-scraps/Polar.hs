@@ -138,3 +138,7 @@ polariseSessionTyQuery EndQuery = PGVSTEndQuery
 
 intIn2Out1 :: GVSessionTy
 intIn2Out1 = Query GVInt (Query GVInt (Bang GVInt EndBang))
+
+
+intIn2OutBang :: GVSessionTy
+intIn2OutBang = Query GVInt (Query GVInt (EndBang))
