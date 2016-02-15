@@ -8,7 +8,9 @@ type payload_ty = string
 
 type import = [
   | `ImportBasic of name
-  | `ImportAlias of (name * alias )
+  | `ImportAlias of (name * alias)
+  | `ImportMember of (name * name)
+  | `ImportMemberAlias of (name * name * alias)
 ]
 
 type role = [
@@ -20,16 +22,21 @@ type role = [
 type role_instantiation = [
   | `RoleInstantiation of name
   | `RoleInstantiationNew of name
+  | `RoleInstantiationAlias of (name * alias)
 ]
 
-type type_param = [
+type param = [
   | `TypeParam of name
   | `TypeParamAlias of name * alias
-]
-
-type sig_param = [
   | `SigParam of name
   | `SigParamAlias of name * alias
+]
+
+type argument = [
+  | `MessageSigArg of message
+  | `MessageSigArgAlias of (message * alias)
+  | `IdentArg of name
+  | `IdentAliasArg  of (name * alias)
 ]
 
 type payload = (payload_ty * ext_name * src * name)
@@ -51,6 +58,8 @@ type protocol = [
 (* Message transfer: a message, sender name, and list of receivers *)
 type message_transfer = (message * from_name * to_names)
 
+type global_interrupt = (message * name)
+
 (* Global interaction: the "meat" of the protocol *)
 type global_interaction = [
   | `GlobalMessageTransfer of unit
@@ -58,7 +67,7 @@ type global_interaction = [
   | `GlobalRecursion of (name * global_interaction_block)
   | `GlobalContinue of name
   | `GlobalParallel of global_interaction_block list
-  | `GlobalInterruptible of (global_interaction_block * global_interaction_block)
+  | `GlobalInterruptible of (global_interaction_block * name option * (global_interrupt list))
   | `GlobalDo of (name * (argument_instantiation list) option * role_instantiation list)
 ]
 and global_interaction_block = global_interaction list

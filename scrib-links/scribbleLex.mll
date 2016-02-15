@@ -36,11 +36,6 @@ let keywords = [
 let whitespace = ('\t'|'\s'|'\r'|'\n')+
 let comment = /\*.*\*/
 let line_comment = //[^\n\r]*\r?\n
-/*
-['a'-'z'] 
-
-
-*/
 let ident = ['a'-'z''A'-'Z']['a'-'z''A'-'Z''0'-'9''_']*
 let integer = (['1'-'9'] ['0'-'9']* | 0)
 
