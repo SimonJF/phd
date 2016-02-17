@@ -33,12 +33,14 @@ let keywords = [
   "do", 	DOKW
 ]
 
-let whitespace = ('\t'|'\s'|'\r'|'\n')+
-let comment = /\*.*\*/
-let line_comment = //[^\n\r]*\r?\n
-let ident = ['a'-'z''A'-'Z']['a'-'z''A'-'Z''0'-'9''_']*
-let integer = (['1'-'9'] ['0'-'9']* | 0)
 
+}
+
+let whitespace = ('\t'|' '|'\r'|'\n')+
+let comment = "/*"(_)*"*/"
+let line_comment = "//"[^'\n''\r']*'\r'?'\n'
+let ident = ['a'-'z''A'-'Z']['a'-'z''A'-'Z''0'-'9''_']*
+let integer = (['1'-'9'] ['0'-'9']* | '0')
 
 rule lex ctxt nl = parse
   | eof     {END}
