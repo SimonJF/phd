@@ -31,23 +31,50 @@ open ScribbleAST
 %token THROWSKW
 %token CATCHESKW
 %token DOKW
+%token LEFT_BRACE
+%token RIGHT_BRACE
+%token LEFT_BRACKET
+%token RIGHT_BRACKET
+%token LEFT_SQUARE_BRACKET
+%token RIGHT_SQUARE_BRACKET
+%token COLON
+%token FORWARD_SLASH
+%token BACK_SLASH
+%token DOT
+%token COMMA
+%token HASH
+%token AMPERSAND
+%token QUESTION_MARK
+%token EXLAMATION_MARK
+%token UNDERSCORE
+%token SEMICOLON
+%token LESS_THAN
+%token GREATER_THAN
+%token NEWKW
 
 %token <string> IDENT
 
+%type <scribble_module> scribble_module
+
 %start scribble_module
 
+%%
+
 identifier:
-| IDENT { $1 }
+  IDENT { $1 }
 ;
 
 modulename:
 | identifier module_ident_inners   { $1 ^ $2 }
 ;
 
+module_ident_inners:
+| module_ident_inner module_ident_inners   { $1 ^ $2 }
+;
+
 module_ident_inner:
 | DOT identifier   { "." ^ $2 }
 |    { "" }
-| module_ident_inner module_ident_inners   { $1 ^ $2 }
 ;
 
 membername:
@@ -93,7 +120,7 @@ importdecl:
 
 importmodule:
 | IMPORTKW modulename SEMICOLON   { `ImportBasic modulename }
-| IMPORTKW modulename ASKW identifier SEMICOLON { `ImportAlias ($2, $3) }
+| IMPORTKW modulename ASKW identifier SEMICOLON { `ImportAlias ($2, $4) }
 ;
 
 importmember:
@@ -103,12 +130,12 @@ importmember:
 ;
 
 payloadtypedecl:
-| TYPEKW LESS_THAN identifier GREATER_THAN ext_identifier FROMKW ext_identifier ASKW identifier SEMICOLON
+| TYPEKW LESS_THAN identifier GREATER_THAN identifier FROMKW identifier ASKW identifier SEMICOLON
   {  ($3, $5, $7, $9)  }
 ;
 
 messagesignature:
-| LEFT_BRACKET payload RIGHT_BRACKET { ("", $1) }
+| LEFT_BRACKET payload RIGHT_BRACKET { ("", $2) }
 | identifier LEFT_BRACKET RIGHT_BRACKET { ($1, []) }
 | identifier LEFT_BRACKET payload RIGHT_BRACKET { ($1, $3) }
 ;
@@ -129,7 +156,7 @@ payloadelementlist:
 
 payloadelement:
 | identifier   { $1 }
-| identifier colon identifier   { $1 ^ ":" ^ $3 }
+| identifier COLON identifier   { $1 ^ ":" ^ $3 }
 ;
 
 protocoldecl:
@@ -142,7 +169,7 @@ in this tool
 | localprotocoldecl   { $1 }
 */
 
-globalprotocoldecl
+globalprotocoldecl:
 | globalprotocolheader globalprotocoldefinition
   {
     let (name, params, roles) = $1 in (name, params, roles, $2)
@@ -175,7 +202,7 @@ roledecllistinner:
 
 roledecl:
 | ROLEKW identifier   { `RoleDecl $2 }
-| ROLEKW identifier ASKW identifier   { `RoleDeclAlias ($2, $3) }
+| ROLEKW identifier ASKW identifier   { `RoleDeclAlias ($2, $4) }
 ;
 
 parameterdecllist:
@@ -213,14 +240,14 @@ roleinstantiationlistinner:
 ;
 
 
-roleinstantiation
+roleinstantiation:
 | identifier   { `RoleInstantiation $1 }
-| NEWKW identifier   { `RoleInstantiationNew $1 }
+| NEWKW identifier   { `RoleInstantiationNew $2 }
 | identifier ASKW identifier   { `RoleInstantiationAlias ($1, $3) }
 ;
 
-argumentlist
-| LESS_THAN argument argumentlistinner GREATER_THAN { $1 :: $2 }
+argumentlist:
+| LESS_THAN argument argumentlistinner GREATER_THAN { $2 :: $3 }
 ;
 
 argumentlistinner:
@@ -233,7 +260,7 @@ argument:
 | messagesignature   { `MessageSigArg $1 }
 | messagesignature ASKW identifier { `MessageSigArgAlias ($1, $3) }
 | identifier   { `IdentArg $1 }
-| identifier ASKW identifier { `IdentAliasArg ($1, $2) }
+| identifier ASKW identifier { `IdentAliasArg ($1, $3) }
 ;
 
 globalprotocolblock:
@@ -297,9 +324,9 @@ globalparallelinner:
 
 
 globalinterruptible:
-| INTERRUPTIBLEKW globalprotocolblock WITHKW LEFT_BRACE globalinterruptlist RIGHT_BRACE:
+| INTERRUPTIBLEKW globalprotocolblock WITHKW LEFT_BRACE globalinterruptlist RIGHT_BRACE
   { `GlobalInterruptible ($2, None, $5) }
-| INTERRUPTIBLEKW identifier colon globalprotocolblock WITHKW LEFT_BRACE globalinterruptlist RIGHT_BRACE:
+| INTERRUPTIBLEKW identifier COLON globalprotocolblock WITHKW LEFT_BRACE globalinterruptlist RIGHT_BRACE
   { `GlobalInterruptible ($2, Some $4, $7) }
 ;
 
@@ -322,4 +349,6 @@ globaldo:
 | DOKW membername argumentlist roleinstantiationlist SEMICOLON
   { `GlobalDo ($2, $3, $4) }
 ;
+
+%%
 

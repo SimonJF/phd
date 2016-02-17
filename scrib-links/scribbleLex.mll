@@ -30,7 +30,8 @@ let keywords = [
   "by", 	BYKW;
   "throws", 	THROWSKW;
   "catches", 	CATCHESKW;
-  "do", 	DOKW
+  "do", 	DOKW;
+  "new",   NEWKW
 ]
 
 
