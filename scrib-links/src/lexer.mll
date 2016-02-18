@@ -2,6 +2,7 @@
 {
 
 open Lexing
+open Parser
 
 let keywords = [
   "module", 	MODULEKW;
@@ -43,12 +44,13 @@ let line_comment = "//"[^'\n''\r']*'\r'?'\n'
 let ident = ['a'-'z''A'-'Z']['a'-'z''A'-'Z''0'-'9''_']*
 let integer = (['1'-'9'] ['0'-'9']* | '0')
 
-rule lex ctxt nl = parse
-  | eof     {END}
-  | line_comment {lex ctxt nl lexbuf}
-  | comment         {lex ctxt nl lexbuf}
+rule token = parse
+  | eof     { EOF }
+  | whitespace { token lexbuf }
+  | line_comment {token lexbuf}
+  | comment         {token lexbuf}
   | ident as var    { try List.assoc var keywords
-                      with Not_found | NotFound _ ->
+                      with Not_found  ->
                         IDENT var
                     }
   | '{'      { LEFT_BRACE }
@@ -70,5 +72,4 @@ rule lex ctxt nl = parse
   | ';'      { SEMICOLON }
   | '<'      { LESS_THAN }
   | '>'      { GREATER_THAN }
-
-
+  | '"'      { token lexbuf }

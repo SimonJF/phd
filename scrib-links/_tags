@@ -1,0 +1,4 @@
+true:   bin_annot, explain
+true:   thread, debug
+true:   package(ppx_deriving.std)
+true:   package(core)
