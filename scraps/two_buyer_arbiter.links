@@ -1,0 +1,38 @@
+# Session Types
+
+typename Buyer1 = !String.?Int.Buyer1_Inner
+typename Buyer1_Inner = !Int.[&| Accept: ?String, Retry: Buyer1_Inner, Quit: EndBang |&]
+
+typename Buyer2 = ?Int.Buyer2_Inner
+typename Buyer2_Inner = ?Int.[+| Accept: !String.?String, Retry: Buyer2_Inner, Quit: EndBang |+]
+
+typename Seller = ?String.!Int.Seller_Inner
+typename Seller_Inner = [&| Accept: ?String.!String, Retry: Seller_Inner, Quit: EndBang |&]
+
+
+type Arb1 = ~Buyer1
+type Arb2 = ~Buyer2
+type Arb3 = ~Seller
+
+sig Arb : (Arb1, Arb2, Arb3) ~> EndQuery
+fun Arb(a1, a2, a3) {
+    # title(String) from A to S
+    var (title, a1) = receive(a1);
+    var a2 = send(title, a2);
+
+    # quote(Int) from S to A, B
+    var (quote, a3) = receive(a3);
+    var a1 = send(a3);
+    var a2 = send(a3);
+
+    # rec loop
+    Arb_Loop(a1, a2, a3)
+
+}
+
+# Do we need a sig here??
+fun Arb_Loop(a1, a2, a3) {
+    # share(Integer) from A to B
+
+}
+
