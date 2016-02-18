@@ -1,0 +1,21 @@
+module src.com.simonjf.scribbletest.TwoBuyer;
+
+type <Links> "string" from Links as String;
+type <Links> "integer" from Links as Integer;
+
+global protocol TwoBuyers(role A, role B, role S) {
+	title(String) from A to S;
+	quote(Integer) from S to A, B;
+	rec Loop {
+		share(Integer) from A to B;
+		choice at B {
+			accept(String) from B to A, S;
+			date(String) from S to B;
+		} or {
+			retry() from B to A, S;
+			continue loop;
+		} or {
+			quit() from B to A, S;
+		}
+	}
+}
