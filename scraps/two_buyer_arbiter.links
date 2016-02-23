@@ -27,12 +27,36 @@ fun Arb(a1, a2, a3) {
 
     # rec loop
     Arb_Loop(a1, a2, a3)
-
 }
 
 # Do we need a sig here??
 fun Arb_Loop(a1, a2, a3) {
     # share(Integer) from A to B
-
+    var (share, a1) = receive(a1);
+    var a2 = send(share, a2);
+    offer (a2) {
+        # accept(String) from B to A, S;
+        case Accept(a2) ->
+            val (title, a2) = receive(a2);
+            val a1 = select Accept a1;
+            val a1 = send(title, a1);
+            val a3 = select Accept a3;
+            val a3 = send(title, a3);
+            
+            # date(String) from S to B;
+            val (date, a3) = receive(a3);
+            val a2 = send(date, a2)
+            (a1, a2, a3)
+        # retry() from B to A, S;
+        case Retry(a2) ->
+            val a1 = select Retry a1;
+            val a3 = select Retry a3;
+            Arb_Loop(a1, a2, a3)
+        # quit() from B to A, S;
+        case Quit(a2) ->
+            val a1 = select Quit a1;
+            val a3 = select Quit a3;
+            (a1, a2, a3)
+    }
 }
 
