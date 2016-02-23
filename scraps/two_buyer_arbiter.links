@@ -1,62 +1,154 @@
-# Session Types
+# Session Typ
 
-typename Buyer1 = !String.?Int.Buyer1_Inner
-typename Buyer1_Inner = !Int.[&| Accept: ?String, Retry: Buyer1_Inner, Quit: EndBang |&]
+typename Buyer1 = !String.?Int.Buyer1_Inner;
+typename Buyer1_Inner = !Int.[&| Accept: ?String.EndBang, Retry: Buyer1_Inner, Quit: EndBang |&];
 
-typename Buyer2 = ?Int.Buyer2_Inner
-typename Buyer2_Inner = ?Int.[+| Accept: !String.?String, Retry: Buyer2_Inner, Quit: EndBang |+]
+typename Buyer2 = ?Int.Buyer2_Inner;
+typename Buyer2_Inner = ?Int.[+| Accept: !String.?String.EndBang, Retry: Buyer2_Inner, Quit: EndBang |+];
 
-typename Seller = ?String.!Int.Seller_Inner
-typename Seller_Inner = [&| Accept: ?String.!String, Retry: Seller_Inner, Quit: EndBang |&]
+typename Seller = ?String.!Int.Seller_Inner;
+typename Seller_Inner = [&| Accept: ?String.!String.EndBang, Retry: Seller_Inner, Quit: EndBang |&];
 
 
-type Arb1 = ~Buyer1
-type Arb2 = ~Buyer2
-type Arb3 = ~Seller
+typename Arb1 = ~Buyer1;
+typename Arb2 = ~Buyer2;
+typename Arb3 = ~Seller;
 
-sig Arb : (Arb1, Arb2, Arb3) ~> EndQuery
-fun Arb(a1, a2, a3) {
+sig arb : (Arb1, Arb2, Arb3) ~> (EndQuery, EndQuery, EndQuery)
+fun arb(a1, a2, a3) {
     # title(String) from A to S
     var (title, a1) = receive(a1);
-    var a2 = send(title, a2);
+    var a3 = send(title, a3);
 
     # quote(Int) from S to A, B
     var (quote, a3) = receive(a3);
-    var a1 = send(a3);
-    var a2 = send(a3);
+    var a1 = send(quote, a1);
+    var a2 = send(quote, a2);
 
     # rec loop
-    Arb_Loop(a1, a2, a3)
+    arbLoop(a1, a2, a3)
 }
 
 # Do we need a sig here??
-fun Arb_Loop(a1, a2, a3) {
+fun arbLoop(a1, a2, a3) {
     # share(Integer) from A to B
     var (share, a1) = receive(a1);
     var a2 = send(share, a2);
     offer (a2) {
         # accept(String) from B to A, S;
         case Accept(a2) ->
-            val (title, a2) = receive(a2);
-            val a1 = select Accept a1;
-            val a1 = send(title, a1);
-            val a3 = select Accept a3;
-            val a3 = send(title, a3);
+            var (title, a2) = receive(a2);
+            var a1 = select Accept a1;
+            var a1 = send(title, a1);
+            var a3 = select Accept a3;
+            var a3 = send(title, a3);
             
             # date(String) from S to B;
-            val (date, a3) = receive(a3);
-            val a2 = send(date, a2)
+            var (date, a3) = receive(a3);
+            var a2 = send(date, a2);
             (a1, a2, a3)
         # retry() from B to A, S;
         case Retry(a2) ->
-            val a1 = select Retry a1;
-            val a3 = select Retry a3;
-            Arb_Loop(a1, a2, a3)
+            var a1 = select Retry a1;
+            var a3 = select Retry a3;
+            arbLoop(a1, a2, a3)
         # quit() from B to A, S;
         case Quit(a2) ->
-            val a1 = select Quit a1;
-            val a3 = select Quit a3;
+            var a1 = select Quit a1;
+            var a3 = select Quit a3;
             (a1, a2, a3)
     }
 }
 
+#typename Buyer1 = !String.?Int.Buyer1_Inner
+#typename Buyer1_Inner = !Int.[&| Accept: ?String, Retry: Buyer1_Inner, Quit: EndBang |&]
+
+fun buyer1(c) {
+    print("Buyer1: Sending request for TAPL");
+    var c = send("Types and Programming Languages", c);
+    var (price, c) = receive(c);
+    print("Buyer1: Received price " ^^ intToString(price));
+    buyer1Inner(c, price, 2)
+}
+
+fun buyer1Inner(c, price, n) {
+    var price_to_send = price / n;
+    print("Buyer1: Sending price " ^^ intToString(price_to_send));
+    var c = send(price_to_send, c);
+
+    offer(c) {
+        case Accept(c) ->
+            var (address, c) = receive(c);
+            print("Buyer1: Buyer2 accepted quote, sent to address "
+                ^^ address);
+            c
+        case Retry(c) ->
+            print("Buyer1: Buyer2 rejected quote; retrying");
+            buyer1Inner(c, price, n + 1)
+        case Quit(c) ->
+            print("Buyer1: Buyer2 aborted the transaction");
+            c
+    }
+    
+}
+
+#typename Buyer2 = ?Int.Buyer2_Inner
+#typename Buyer2_Inner = ?Int.[+| Accept: !String.?String, Retry: Buyer2_Inner, Quit: EndBang |+]
+
+sig buyer2 : (Buyer2) ~> EndBang
+fun buyer2(c) {
+    var (price, c) = receive(c);
+    var (quote, c) = receive(c);
+    print("Buyer2: received quote " ^^ intToString(price)
+        ^^ " from buyer1, accepting");
+    var c = select Accept c;
+    var c = send("Informatics Forum, 10 Crichton Street", c);
+    var (date, c) = receive(c);
+    print("Buyer2: Received delivery date " ^^ date);
+    c
+}
+
+#typename Seller = ?String.!Int.Seller_Inner
+#typename Seller_Inner = [&| Accept: ?String.!String, Retry: Seller_Inner, Quit: EndBang |&]
+
+sig seller : (Seller) ~> EndBang
+fun seller(c) {
+    var (title, c) = receive(c);
+    var price = 50;
+    print("Seller: received title " ^^ title ^^ " from buyer2, quoting: "
+        ^^ intToString(price));
+    var c = send(price, c);
+    sellerInner(c)
+}
+
+sig sellerInner : (Seller_Inner) ~> EndBang
+fun sellerInner(c) {
+    offer(c) {
+        case Accept(c) ->
+            var (address, c) = receive(c);
+            print("Seller: Buyer2 accepted quote; will send book to address "
+                ^^ address ^^ "!");
+            send("tomorrow", c)
+        case Retry(c) ->
+            print("Seller: Buyer2 rejected quote; retrying!");
+            sellerInner(c)
+        case Quit(c) ->
+            print("Seller: Buyer2 quit!");
+            c
+    }
+}
+
+
+# Main bit
+fun main() {
+    print("Starting!");
+    # Fork buyer1, buyer2, and seller, then continue as arbiter in main thread.
+    var arb1 = fork(buyer1);
+    var arb2 = fork(buyer2);
+    var arb3 = fork(seller);
+    var (arb1, arb2, arb3) = arb(arb1, arb2, arb3);
+    wait(arb1); wait(arb2); wait(arb3);
+    print("Done!")
+}
+
+main()
