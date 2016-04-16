@@ -4,6 +4,8 @@
 open Printf
 open Core.Std
 open ScribbleAST
+open SessionTypes
+open ScribbleToFormal
 
 let parse_and_print name =
   let file = In_channel.create name in
