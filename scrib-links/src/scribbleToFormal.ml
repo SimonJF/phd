@@ -71,7 +71,7 @@ let rec pp_global_type = function
   | `FGTBranch (from, interactions) ->
       let interaction_docs = List.map ~f:pp_branch_interaction interactions in
       text(from ^ " → (")
-        ^^ nest 2 (break ^^ (doc_concat break interaction_docs))
+        ^^ nest 2 ((doc_concat break interaction_docs))
         ^^ text(")") ^^ break
   | `FGTMu (mu_name, gt) -> (text ("μ " ^ mu_name ^ ". ")) ^^ (pp_global_type gt)
   | `FGTRecVar x -> text(x)

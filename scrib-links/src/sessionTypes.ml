@@ -41,8 +41,8 @@ and fgt_branch_interaction =
 
 (* Local types *)
 type local_type = [
-  | `FLTSend of (role_to list * label * payload_ty list * local_type) list
-  | `FLTReceive of (role_from * label * payload_ty list * local_type) list
+  | `FLTSend of (role_to list * message * local_type) list
+  | `FLTReceive of (role_from * message * local_type) list
   | `FLTMu of (name * local_type)
   | `FLTRecVer of string
   | `FLTEnd
