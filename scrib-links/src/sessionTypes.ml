@@ -44,7 +44,7 @@ type local_type = [
   | `FLTSend of (role_to list * message * local_type) list
   | `FLTReceive of (role_from * message * local_type) list
   | `FLTMu of (name * local_type)
-  | `FLTRecVer of string
+  | `FLTRecVar of string
   | `FLTEnd
 ] [@@deriving show]
 
