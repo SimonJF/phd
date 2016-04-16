@@ -1,10 +1,12 @@
 open ScribbleAST
 open SessionTypes
+open Core.Std
+open PP
 
 let rec join_types : global_type -> global_type -> global_type = fun t1 t2 ->
   match t1, t2 with
     | `FGTBranch (from, gis), t2 ->
-        let joined_gis = List.map (fun (rs, msg, gt) ->
+        let joined_gis = List.map ~f:(fun (rs, msg, gt) ->
           (rs, msg, join_types gt t2)) gis in
         `FGTBranch (from, joined_gis)
     | (`FGTMu (mu1, t1)), t2 -> `FGTMu (mu1, (join_types t1 t2))
@@ -35,9 +37,9 @@ let rec scrib_to_formal : global_interaction_block -> global_type = function
        *   FromRole -> (ToRoles, Message, Continuation)
        * so we want to consolidate the blocks into this form. *)
       let fgt_interactions =
-        List.map choice_to_branch gibs
+        List.map ~f:choice_to_branch gibs
       (* Next, we need to join each block with the continuation *)
-        |> List.map (fun (names_to, msg, gt) ->
+        |> List.map ~f:(fun (names_to, msg, gt) ->
              let gt_joined = join_types gt xs_gt in
              (names_to, msg, gt_joined)) in
       (* Finally, we can package it all up into a branch construct *)
@@ -59,7 +61,25 @@ and choice_to_branch : global_interaction_block -> fgt_branch_interaction = func
       (names_to, msg, scrib_to_formal xs)
   | _ -> failwith "Ill-formed choice block: first interaction isn't a message"
 and get_from_role : global_interaction_block list -> role_from = fun blocks ->
-  let block1 = List.hd blocks in
+  let block1 = List.hd_exn blocks in
   match block1 with
   | (`GlobalMessageTransfer (_, from_role, _)) :: _ -> from_role
   | _ -> failwith "Ill-formed choice block: first interaction isn't a message"
+
+
+let rec pp_global_type = function
+  | `FGTBranch (from, interactions) ->
+      let interaction_docs = List.map ~f:pp_branch_interaction interactions in
+      text(from ^ " → (")
+        ^^ nest 2 (break ^^ (doc_concat break interaction_docs))
+        ^^ text(")") ^^ break
+  | `FGTMu (mu_name, gt) -> (text ("μ " ^ mu_name ^ ". ")) ^^ (pp_global_type gt)
+  | `FGTRecVar x -> text(x)
+  | `FGTEnd -> text("end")
+and pp_branch_interaction (roles_to, (name, payloads), gt) =
+  let roles_doc =
+    text("[") ^^ (doc_concat (text ",") (List.map ~f:text roles_to)) ^^ text("] ") in
+  let msg_doc =
+    let payloads_doc = doc_concat (text ", ") (List.map ~f:text payloads) in
+    (text (name ^ ", [")) ^^ payloads_doc ^^ (text "]") in
+  roles_doc ^^ msg_doc ^^ (nest 2 (break ^^ (pp_global_type gt)))
