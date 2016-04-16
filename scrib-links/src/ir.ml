@@ -1,38 +1,3 @@
-(* Backend-agnostic intermediate representation of binary session types
- * and processes. *)
-
-(* Binary session types *)
-type base_ty = string
-type name = string
-type label = string
-type char_name = string
-type var_name = string
-
-type binary_session_type = [
-  | `STBaseTy of base_ty
-  | `STMu of (name * binary_session_type)
-  | `STSend of (binary_session_type * binary_session_type)
-  | `STReceive of (binary_session_type * binary_session_type)
-  | `STOffer of (name * binary_session_type) list
-  | `STChoose of (name * binary_session_type) list
-  | `STRecTyVar of name
-  | `STEnd
-] [@@deriving show]
-
-
-(* Binary Duality *)
-let dualof = function
-  | `STBaseTy bty -> `STBaseTy bty
-  (* TODO: Fix the recursion stuff once I understand it *)
-  | `STMu (n, bty) -> `STMu (n, (dualof bty))
-  | `STSend (payload, cont) -> `STReceive (payload, dualof cont)
-  | `STReceive (payload, cont) -> `STSend (payload, dualof cont)
-  | `STOffer xs -> `STChoose (List.map (fun (lbl, cont) -> (lbl, dualof cont))) xs
-  | `STChoice xs -> `STOffer (List.map (fun (lbl, cont) -> (lbl, dualof cont))) xs
-  | `STRecTyVar n -> `STRecTyVar n
-  | `STEnd -> `STEnd
-
-
 
 (* IR Processes.
  * Processes will send values to other processes.
@@ -105,10 +70,6 @@ type ir = (ht_role_sty * ht_role_proc)
  *       each one.
  *)
 
-
-
-
-
 (* Symbol environment. Given a role name and recursion branch name,
  * generates a unique session type name. *)
 let symEnv = object(self)
@@ -126,53 +87,4 @@ let symEnv = object(self)
     end
     
 let genSTName role recName = symEnv#genName role recName
-
-(* Step 1 *)
-(* Outer Function: Global Type -> Role -> [(BranchName, SessionType)] *)
-let genBin gt role = gen_bin_inner gt role []
-
-
-(* Inner Function: Global interaction list -> Role -> 
- *  [(RecName, SessionTyName)] -> [(RecName, MaxIndex)] ->
- *  (SessionType, [(TyName, SessionType)]) *)
-let rec genBinInner gis role recEnv =
-    (* GI -> (SessionType, [(RecName, MaxIndex)],
-     * [(TyName, SessionType)] *)
-    let genBinGI gi gis =
-        match gi with
-            | `GlobalMessageTransfer (msg, fromName, toNames) ->
-                    (* If the role is involved in the GMT, then add the
-                     * relevant session type fragment. Otherwise continue
-                     * projecting. *)
-                    if fromName == role then
-                        (* TODO: Is there a way to make this tail-recursive? *)
-                        let (st_cont, stEnv) =
-                            genBinInner gis role recEnv in
-                        (`STSend (`STBaseTy msgName) st_cont, stEnv)
-                    else if (List.mem role toNames) then
-                        let (st_cont, stEnv) =
-                            genBinInner gis role recEnv recMaxEnv in
-                        (`STReceive (`STBaseTy msgName) st_cont, stEnv)
-                    else genBinInner gis role recEnv recMaxEnv
-            | `GlobalChoice (chooser, gis) -> [] 
-            | `GlobalRecursion (recName, recGis) ->
-                    let newSTName = genSTName role recName in
-                    let (newST, newSTs) = genBinInner gis role in
-                    (* Scribble global protocols are tail-recursive, so
-                     * there shouldn't be anything after the recursion block? *)
-                    (`STRecTyVar newSTName, (newSTName, newST) :: newSTs)
-
-
-            | `GlobalContinue recName -> []
-            | `GlobalParallel gis ->
-                    failwith "SJF TODO: This should be possible to support"
-            | `GlobalInterruptible (gis, nameOpt, interrupts) ->
-                    failwith "Not implemented -- not a priority, but possibly could be supported?"
-            | `GlobalDo (protocolName, argInsts, roleInsts) ->
-                    failwith "SJF TODO: This is a Very Useful Thing To Have" in
-    match gis with
-        | [] -> []
-        | (x :: xs) -> genBinGI x r branchNames
-
-
 
