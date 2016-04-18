@@ -1,7 +1,6 @@
 open ScribbleAST
 open SessionTypes
 open Core.Std
-open PP
 
 let rec join_types : global_type -> global_type -> global_type = fun t1 t2 ->
   match t1, t2 with
@@ -67,19 +66,4 @@ and get_from_role : global_interaction_block list -> role_from = fun blocks ->
   | _ -> failwith "Ill-formed choice block: first interaction isn't a message"
 
 
-let rec pp_global_type = function
-  | `FGTBranch (from, interactions) ->
-      let interaction_docs = List.map ~f:pp_branch_interaction interactions in
-      text(from ^ " → (")
-        ^^ nest 2 ((doc_concat break interaction_docs))
-        ^^ text(")") ^^ break
-  | `FGTMu (mu_name, gt) -> (text ("μ " ^ mu_name ^ ". ")) ^^ (pp_global_type gt)
-  | `FGTRecVar x -> text(x)
-  | `FGTEnd -> text("end")
-and pp_branch_interaction (roles_to, (name, payloads), gt) =
-  let roles_doc =
-    text("[") ^^ (doc_concat (text ",") (List.map ~f:text roles_to)) ^^ text("] ") in
-  let msg_doc =
-    let payloads_doc = doc_concat (text ", ") (List.map ~f:text payloads) in
-    (text (name ^ ", [")) ^^ payloads_doc ^^ (text "]") in
-  roles_doc ^^ msg_doc ^^ (nest 2 (break ^^ (pp_global_type gt)))
+

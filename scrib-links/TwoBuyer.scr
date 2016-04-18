@@ -13,7 +13,7 @@ global protocol TwoBuyers(role A, role B, role S) {
 			date(String) from S to B;
 		} or {
 			retry() from B to A, S;
-			continue loop;
+			continue Loop;
 		} or {
 			quit() from B to A, S;
 		}

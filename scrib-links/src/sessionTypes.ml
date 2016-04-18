@@ -4,6 +4,11 @@
     - Binary
 *)
 open ScribbleAST
+open Core.Std
+open PP
+
+type role_name = string
+  [@@deriving show]
 
 type role_to = string
   [@@deriving show]
@@ -42,7 +47,7 @@ and fgt_branch_interaction =
 (* Local types *)
 type local_type = [
   | `FLTSend of (role_to list * message * local_type) list
-  | `FLTReceive of (role_from * message * local_type) list
+  | `FLTReceive of (role_from * (message * local_type) list)
   | `FLTMu of (name * local_type)
   | `FLTRecVar of string
   | `FLTEnd
@@ -67,9 +72,51 @@ let rec dualof = function
   | `STMu (n, bty) -> `STMu (n, (dualof bty))
   | `STSend (payload, cont) -> `STReceive (payload, dualof cont)
   | `STReceive (payload, cont) -> `STSend (payload, dualof cont)
-  | `STOffer xs -> `STChoose ((List.map (fun (lbl, cont) -> (lbl, dualof cont))), xs)
-  | `STChoice xs -> `STOffer ((List.map (fun (lbl, cont) -> (lbl, dualof cont))), xs)
+  | `STOffer xs -> `STChoose (List.map ~f:(fun (lbl, cont) -> (lbl, dualof cont)) xs)
+  | `STChoose xs -> `STOffer (List.map ~f:(fun (lbl, cont) -> (lbl, dualof cont)) xs)
   | `STRecTyVar n -> `STRecTyVar n
   | `STEnd -> `STEnd
 
+
+(* Pretty printing *)
+(* Global types *)
+let roles_doc roles_to =
+    text("[") ^^ (doc_concat (text ",") (List.map ~f:text roles_to)) ^^ text("] ")
+
+let msg_doc label payloads =
+    let payloads_doc = doc_concat (text ", ") (List.map ~f:text payloads) in
+    (text (label ^ ", [")) ^^ payloads_doc ^^ (text "]")
+
+let rec pp_global_type = function
+  | `FGTBranch (from, interactions) ->
+      let interaction_docs = List.map ~f:pp_branch_interaction interactions in
+      text(from ^ " → (")
+        ^^ nest 2 ((doc_concat break interaction_docs))
+        ^^ text(")") ^^ break
+  | `FGTMu (mu_name, gt) -> (text ("μ " ^ mu_name ^ ". ")) ^^ (pp_global_type gt)
+  | `FGTRecVar x -> text(x)
+  | `FGTEnd -> text("end")
+and pp_branch_interaction (roles_to, (name, payloads), gt) =
+    (roles_doc roles_to) ^^ (msg_doc name payloads) ^^ (nest 2 (break ^^ (pp_global_type gt)))
+
+(* Local types *)
+
+let rec pp_local_type = function
+  | `FLTSend interactions ->
+      let pp_send (roles_to, (name, payloads), cont) =
+        text "(" ^^ roles_doc roles_to ^^ msg_doc name payloads ^^ text ") . " ^^
+        (nest 2 (break ^^ (pp_local_type cont))) in
+      let body =
+        List.map ~f:pp_send interactions
+        |> doc_concat break in
+      text "!<" ^^ (nest 2 (break ^^ body)) ^^ text ">"
+  | `FLTReceive (from, interactions) ->
+      let pp_recv ((name, payloads), cont) =
+        (text "(") ^^ (msg_doc name payloads) ^^ text ") . " ^^
+        (nest 2 (break ^^ (pp_local_type cont))) in
+      let body = List.map ~f:pp_recv interactions |> doc_concat break in
+      (text (from ^ "?(")) ^^ (nest 2 (break ^^ body)) ^^ (text ")")
+  | `FLTMu (mu_name, lt) -> (text ("μ " ^ mu_name ^ ". ")) ^^ (pp_local_type lt)
+  | `FLTRecVar x -> text(x)
+  | `FLTEnd -> text("end")
 

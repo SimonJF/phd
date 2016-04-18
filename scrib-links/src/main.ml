@@ -5,6 +5,10 @@ open Printf
 open Core.Std
 open ScribbleAST
 open SessionTypes
+open Projection
+open Util
+
+type projection_map = local_type String.Map.t
 
 (* Reads a Scribble protocol, parses it, returns the Scribble module.
  * If there's an error, prints it and quits. *)
@@ -42,12 +46,48 @@ let global_proto_name : global_protocol -> string =
 let global_proto_to_formal : global_protocol -> global_type =
   fun (_, _, _, gib) -> ScribbleToFormal.scrib_to_formal gib
 
-let print_formal : global_protocol -> unit = fun global_proto ->
+
+let global_proto_roles : global_protocol -> role_name list = fun (_, _, roles, _) ->
+  List.map ~f:(fun x ->
+    match x with
+      | `RoleDecl x -> x
+      | `RoleDeclAlias (_, x) -> x
+      | `SelfRoleDecl x -> x) roles
+
+let generate_projections : global_type -> role_name list -> projection_map =
+  fun global_ty roles ->
+    printf "Role list: %s\n" (format_list roles);
+    let rec generate_projections_map map = function
+      | [] -> map
+      | role :: roles ->
+          let upd_map = (Map.add map ~key:role ~data:(project global_ty role)) in
+          generate_projections_map upd_map roles in
+    generate_projections_map String.Map.empty roles
+
+
+let projection_list : projection_map -> (string * local_type) list =
+  Map.to_alist
+
+let print_projections : projection_map -> unit = fun proj_map ->
+  projection_list proj_map
+  |> List.iter ~f:(fun (role, ty) ->
+       printf "Local type for %s: \n %s \n" role
+         (SessionTypes.pp_local_type ty |> PP.pretty 100))
+
+let print_global_and_projections : global_protocol -> unit = fun global_proto ->
+  let (_, _, roles, _) = global_proto in
+  let role_list = global_proto_roles global_proto in
+  let global_ty = global_proto_to_formal global_proto in
+  let projections = generate_projections global_ty role_list in
   printf "Global type for %s: \n %s \n"
     (global_proto_name global_proto)
     (global_proto_to_formal global_proto
-     |> ScribbleToFormal.pp_global_type
-     |> PP.pretty 180)
+     |> SessionTypes.pp_global_type
+     |> PP.pretty 100);
+  print_projections projections
+
+
+
 
 let (<<) f g x = f(g(x))
 
@@ -60,7 +100,7 @@ let main () =
     | _ :: proto_name :: _ ->
         let parsed_module = parse proto_name in
         printf "AST:\n%s.\n" (ScribbleAST.show_scribble_module parsed_module);
-        List.iter (module_to_globals parsed_module) print_formal
+        List.iter ~f:print_global_and_projections (module_to_globals parsed_module)
 
 
 
