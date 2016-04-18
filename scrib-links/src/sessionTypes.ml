@@ -55,26 +55,23 @@ type local_type = [
 
 (* Binary session types *)
 type binary_session_type = [
-  | `STBaseTy of base_ty
   | `STMu of (name * binary_session_type)
-  | `STSend of (binary_session_type * binary_session_type)
-  | `STReceive of (binary_session_type * binary_session_type)
+  | `STSend of (message * binary_session_type)
+  | `STReceive of (message * binary_session_type)
   | `STOffer of (name * binary_session_type) list
   | `STChoose of (name * binary_session_type) list
-  | `STRecTyVar of name
+  | `STRecVar of name
   | `STEnd
 ] [@@deriving show]
 
 (* Binary Duality *)
 let rec dualof = function
-  | `STBaseTy bty -> `STBaseTy bty
-  (* TODO: Fix the recursion stuff once I understand it *)
   | `STMu (n, bty) -> `STMu (n, (dualof bty))
-  | `STSend (payload, cont) -> `STReceive (payload, dualof cont)
-  | `STReceive (payload, cont) -> `STSend (payload, dualof cont)
+  | `STSend (msg, cont) -> `STReceive (msg, dualof cont)
+  | `STReceive (msg, cont) -> `STSend (msg, dualof cont)
   | `STOffer xs -> `STChoose (List.map ~f:(fun (lbl, cont) -> (lbl, dualof cont)) xs)
   | `STChoose xs -> `STOffer (List.map ~f:(fun (lbl, cont) -> (lbl, dualof cont)) xs)
-  | `STRecTyVar n -> `STRecTyVar n
+  | `STRecVar n -> `STRecVar n
   | `STEnd -> `STEnd
 
 

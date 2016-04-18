@@ -69,22 +69,3 @@ type ir = (ht_role_sty * ht_role_proc)
  *       expand the *first* choice. In the case of branches, of course we'll have to do
  *       each one.
  *)
-
-(* Symbol environment. Given a role name and recursion branch name,
- * generates a unique session type name. *)
-let symEnv = object(self)
-    val sym_env = Hashtbl.create 30
-
-    method genName role recName =
-        try
-            let curMax = Hashtbl.find (role, recName) sym_env in
-            let newMax = curMax + 1 in
-            Hashtbl.replace (role, recName) newMax sym_env;
-            recName ^ (string_of_int newMax)
-        with Not_found ->
-            Hashtbl.replace (role, recName) 0 sym_env;
-            recName
-    end
-    
-let genSTName role recName = symEnv#genName role recName
-

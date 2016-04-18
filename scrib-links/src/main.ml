@@ -6,6 +6,7 @@ open Core.Std
 open ScribbleAST
 open SessionTypes
 open Projection
+open Binarise
 open Util
 
 type projection_map = local_type String.Map.t
