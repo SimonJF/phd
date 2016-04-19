@@ -117,3 +117,22 @@ let rec pp_local_type = function
   | `FLTRecVar x -> text(x)
   | `FLTEnd -> text("end")
 
+(* Binary Types *)
+let rec pp_binary_session_type bst =
+  let pp_choices symb xs =
+    let pp_choice (name, cont) = (text (name ^ ": ")) ^^ (pp_binary_session_type cont) in
+    let choices_doc = doc_concat break (List.map ~f:pp_choice xs) in
+    text ("[" ^ symb ^ "|") ^^ nest 2 (break ^^ choices_doc)
+      ^^ break ^^ text ("|" ^ symb ^ "]") in
+
+  match bst with
+    | `STMu (mu_name, bt) -> (text ("μ " ^ mu_name ^ ". ")) ^^ (pp_binary_session_type bt)
+    | `STSend ((lbl, payloads), bt) ->
+        (text "!" ^^ (msg_doc lbl payloads) ^^ text "." ^^ (pp_binary_session_type bt))
+    | `STReceive ((lbl, payloads), bt) ->
+        (text "?" ^^ (msg_doc lbl payloads) ^^ text "." ^^ (pp_binary_session_type bt))
+    | `STOffer xs -> pp_choices "&" xs
+    | `STChoose xs -> pp_choices "+" xs
+    | `STRecVar x -> text x
+    | `STEnd -> text "end"
+

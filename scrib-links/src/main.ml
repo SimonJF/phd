@@ -66,26 +66,42 @@ let generate_projections : global_type -> role_name list -> projection_map =
     generate_projections_map String.Map.empty roles
 
 
-let projection_list : projection_map -> (string * local_type) list =
-  Map.to_alist
 
 let print_projections : projection_map -> unit = fun proj_map ->
-  projection_list proj_map
+  Map.to_alist proj_map
   |> List.iter ~f:(fun (role, ty) ->
        printf "Local type for %s: \n %s \n" role
          (SessionTypes.pp_local_type ty |> PP.pretty 100))
+
+let binarise_local_types : name  -> projection_map ->
+    (name * (name * binary_session_type) list) list =
+  fun proto_name proj_map ->
+    Map.to_alist proj_map
+    |> List.map ~f:(fun (role, ty) ->
+        (role, Binarise.binarise proto_name role ty))
+
+let print_binary_types : (name * (name * binary_session_type) list) list -> unit = fun xs ->
+  xs |>
+  List.iter ~f:(fun (role, bin_tys) ->
+    printf "Binary types for role %s:\n" role;
+    bin_tys |>
+    List.iter ~f:(fun (name, bty) ->
+      printf "type %s = %s\n" name (SessionTypes.pp_binary_session_type bty |> PP.pretty 100)))
+
 
 let print_global_and_projections : global_protocol -> unit = fun global_proto ->
   let (_, _, roles, _) = global_proto in
   let role_list = global_proto_roles global_proto in
   let global_ty = global_proto_to_formal global_proto in
   let projections = generate_projections global_ty role_list in
+  let proto_name = global_proto_name global_proto in
   printf "Global type for %s: \n %s \n"
-    (global_proto_name global_proto)
+    proto_name
     (global_proto_to_formal global_proto
      |> SessionTypes.pp_global_type
      |> PP.pretty 100);
-  print_projections projections
+  print_projections projections;
+  binarise_local_types proto_name projections |> print_binary_types
 
 
 
