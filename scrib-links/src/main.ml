@@ -7,6 +7,8 @@ open ScribbleAST
 open SessionTypes
 open Projection
 open Binarise
+open Ir
+open GenerateArbiter
 open Util
 
 type projection_map = local_type String.Map.t

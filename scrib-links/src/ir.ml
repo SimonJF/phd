@@ -1,3 +1,5 @@
+open SessionTypes
+open ScribbleAST
 
 (* IR Processes.
  * Processes will send values to other processes.
@@ -38,20 +40,26 @@
  *        recursion (at least) and branching (possible) will induce the need to
  *        have separate functions for different recursion scopes.
  *)
-
-
+type chan_name = name
+type var_name = name
+type process_name = name
 
 type ir_process = [
-  | `IRPSend of (chan_name * var_name * ir_process )
-  | `IRPReceive of (chan_name * var_name * ir_process )
-  | `IRPBranch of (chan_name * ((label * ir_process) list))
-  | `IRPChoose of (chan_name * label)
+  | `IRSend of (chan_name * var_name * ir_process )
+  | `IRReceive of (chan_name * var_name * ir_process )
+  | `IRBranch of (chan_name * ((label * ir_process) list))
+  | `IRChoose of (chan_name * label * ir_process)
+  | `IRCall of process_name
+  | `IREnd
 ]
 
+(*
 type ht_role_sty = binary_session_type String.Hashtbl.t
 type ht_role_proc = ir_process String.Hashtbl.t
 type ir = (ht_role_sty * ht_role_proc)
+*)
 
+type ir = ir_process
 
 (*
  * Things to do:

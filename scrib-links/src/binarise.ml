@@ -1,25 +1,14 @@
 open Core.Std
 open ScribbleAST
 open SessionTypes
+open Util
 
 (* Symbol environment. Given a role name and recursion branch name,
  * generates a unique session type name. *)
-let symEnv = object(self)
-    val sym_env = Hashtbl.Poly.create ()
+let sym_env = Util.create_sym_env
 
-    method genName role rec_name =
-      let cur_max_opt = Hashtbl.find sym_env (role, rec_name) in
-      match cur_max_opt with
-        | Some cur_max ->
-            let new_max = cur_max + 1 in
-            Hashtbl.set ~key:(role, rec_name) ~data:new_max sym_env;
-            rec_name ^ (string_of_int new_max)
-        | None ->
-            Hashtbl.set ~key:(role, rec_name) ~data:0 sym_env;
-            rec_name
-    end
 let gen_st_name proto_name role rec_name =
-  proto_name ^ "_" ^ symEnv#genName role rec_name
+  proto_name ^ "_" ^ (Util.gen_sym sym_env (role ^ "_" ^ rec_name))
 
 let binarise proto_name role_name lty =
   (* Current session type name -> (RecVar |-> Session type name) ->

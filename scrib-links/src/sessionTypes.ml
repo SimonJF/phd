@@ -82,7 +82,7 @@ let roles_doc roles_to =
 
 let msg_doc label payloads =
     let payloads_doc = doc_concat (text ", ") (List.map ~f:text payloads) in
-    (text (label ^ ", [")) ^^ payloads_doc ^^ (text "]")
+    (text ("(" ^ label ^ ", [")) ^^ payloads_doc ^^ (text ("]" ^ ")"))
 
 let rec pp_global_type = function
   | `FGTBranch (from, interactions) ->
