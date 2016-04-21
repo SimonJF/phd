@@ -6,8 +6,6 @@ type <Links> "integer" from Links as Integer;
 global protocol TwoBuyers(role A, role B, role S) {
 	title(String) from A to S;
 	quote(Integer) from S to A, B;
-	rec Loop {
-  rec Loop {
   rec Loop {
 		share(Integer) from A to B;
 		choice at B {
@@ -20,6 +18,4 @@ global protocol TwoBuyers(role A, role B, role S) {
 			quit() from B to A, S;
 		}
 	}
-}
-}
 }

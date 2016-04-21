@@ -41,8 +41,13 @@ open ScribbleAST
  *        have separate functions for different recursion scopes.
  *)
 type chan_name = name
+  [@@deriving show]
 type var_name = name
+  [@@deriving show]
+
 type process_name = name
+  [@@deriving show]
+
 
 type ir_process = [
   | `IRSend of (chan_name * var_name * ir_process )
@@ -51,15 +56,13 @@ type ir_process = [
   | `IRChoose of (chan_name * label * ir_process)
   | `IRCall of process_name
   | `IREnd
-]
+] [@@deriving show]
 
 (*
 type ht_role_sty = binary_session_type String.Hashtbl.t
 type ht_role_proc = ir_process String.Hashtbl.t
 type ir = (ht_role_sty * ht_role_proc)
 *)
-
-type ir = ir_process
 
 (*
  * Things to do:

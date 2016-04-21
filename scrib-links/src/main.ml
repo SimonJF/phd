@@ -90,6 +90,8 @@ let print_binary_types : (name * (name * binary_session_type) list) list -> unit
     List.iter ~f:(fun (name, bty) ->
       printf "type %s = %s\n" name (SessionTypes.pp_binary_session_type bty |> PP.pretty 100)))
 
+let print_arbiter_processes =
+  List.iter ~f:(fun (name, proc) -> printf "%s: %s \n" name (Ir.show_ir_process proc))
 
 let print_global_and_projections : global_protocol -> unit = fun global_proto ->
   let (_, _, roles, _) = global_proto in
@@ -103,9 +105,11 @@ let print_global_and_projections : global_protocol -> unit = fun global_proto ->
      |> SessionTypes.pp_global_type
      |> PP.pretty 100);
   print_projections projections;
-  binarise_local_types proto_name projections |> print_binary_types
-
-
+  binarise_local_types proto_name projections |> print_binary_types;
+  let role_chan_map =
+    List.mapi ~f:(fun i role -> (role, ("c" ^ (string_of_int i)))) role_list
+    |> Map.of_alist_exn ~comparator:String.comparator in
+  generate_arbiter role_chan_map proto_name global_ty |> print_arbiter_processes
 
 
 let (<<) f g x = f(g(x))
